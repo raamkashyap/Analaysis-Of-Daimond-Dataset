@@ -1,1 +1,1 @@
-# Analaysis-Of-Daimond-Dataset
+# Analysis-Of-Diamond-Dataset
