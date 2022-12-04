@@ -137,6 +137,30 @@ postResample(predict_price_lin_reg,test_Y)['Rsquared'] # 0.912
 
 ########################################
 
+# Applying bootstrapping using multiple linear regression
+
+# Creating a function to caluculate the coeffecients that have been fitted
+
+bootstrap_func <- function(formula, data_frame, obs)
+{
+   bootstrap_sample <-  data_frame[obs, ] # Select a sample using bootstrap
+   lin_reg_model <- lm(formula, data = bootstrap_sample) # Applying linear regression on the bootstrap sample 
+   return(coef(lin_reg_model)) # The function should return the weights
+}
+
+# Apply bootstrap for 1001 samples
+
+bootstrap_final <- boot(data = diamonds, statistic=bootstrap_func, R = 1001, formula = price ~ .b)
+
+# Plot the distribution of the bootstrapped samples
+plot(bootstrap_final,index = 1) # Intercept of the model
+plot(bootstrap_final,index = 2) # Carat predictor variable
+plot(bootstrap_final,index = 3) # Cut predictor variable
+plot(bootstrap_final,index = 4) # Colour predictor variable
+plot(bootstrap_final,index = 4) # Clarity predictor variable
+plot(bootstrap_final,index = 5) # Depth predictor variable
+plot(bootstrap_final,index = 6) # Table predictor variable
+
 # subset selection on train data
 fit.subset.train <- regsubsets(train_data$price ~ ., data = train_data, method = "exhaustive")
 summary(fit.subset.train)
