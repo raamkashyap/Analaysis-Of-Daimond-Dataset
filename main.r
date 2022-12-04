@@ -6,6 +6,7 @@ library(ISLR2)
 library(plyr)
 library(ggplot2)
 library(GGally)
+library(leaps)
 
 set.seed(2)
 
@@ -81,10 +82,18 @@ plot(prop_varex, type = "b")
 diamonds <- diamonds %>% 
   select (-x, -y, -z)
 
-# split into 80% train and 20% test
-partition = sample(nrow(diamonds), as.integer(nrow(diamonds)*0.8))
+# split into 70% train and 30% test
+partition = sample(nrow(diamonds), as.integer(nrow(diamonds)*0.7))
 train_data <- diamonds[partition,]
 test_data <- diamonds[-partition,]
+
+
+# normalize/standardize the data
+mean_vector = apply(train_data %>% select (-price), MARGIN=2, mean)
+sd_vector = apply(train_data %>% select (-price), MARGIN=2, sd)
+
+train_data[c(-7)] <- scale(train_data[c(-7)], center=mean_vector, scale=sd_vector)
+test_data[c(-7)] <- scale(test_data[c(-7)], center=mean_vector, scale=sd_vector)
 
 # Separate out predictors and response
 train_X <- train_data %>%
@@ -94,12 +103,14 @@ test_X <- test_data %>%
   select(-price)
 test_Y <- test_data$price
 
-# normalize/standardize the data
-mean_vector = sapply(train_X, mean, 2)
-sd_vector = sapply(train_X, sd, 2)
 
-train_X <- scale(train_X, center=mean_vector, scale=sd_vector)
-test_X <- scale(test_X, center=mean_vector, scale=sd_vector)
-
- 
 # apply regression methods
+
+
+
+# linear regression
+#fit.lm <-lm(train_Y ~ ., data = train_X)
+
+# subset selection'
+fit.subset <- regsubsets(train_Y ~ ., data = train_X, method = "exhaustive")
+coef(fit.subset, 1:5)
