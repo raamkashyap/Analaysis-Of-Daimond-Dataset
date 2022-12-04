@@ -10,6 +10,11 @@ library(leaps)
 library(randomForest)
 library(Metrics)
 library(caret)
+library(leaps)
+library(glmnet)
+library(glmnetUtils)
+library(pls) 
+library(boot)
 
 
 
@@ -132,11 +137,114 @@ postResample(predict_price_lin_reg,test_Y)['Rsquared'] # 0.912
 
 ########################################
 
-# subset selection'
-fit.subset <- regsubsets(train_Y ~ ., data = train_X, method = "exhaustive")
-coef(fit.subset, 1:5)
+# subset selection on train data
+fit.subset.train <- regsubsets(train_data$price ~ ., data = train_data, method = "exhaustive")
+summary(fit.subset.train)
+
+model.ids <- 1:6
+cv.train.errors <-  map(model.ids, formula, fit.subset.train, "price") %>%
+  map(error, train_data) %>%
+  unlist()
+
+#min train mse for model will all 6 predictors
+min(cv.train.errors)  #772.2178
+
+#coef of train model with min RMSE
+coef(fit.subset.train, which.min(cv.train.errors))
+
+#(Intercept)       carat         cut       color     clarity       depth       table 
+#2999.47335  2740.00485    47.62913  -367.05082   604.05949   -14.98773   -37.16489 
+
+# subset selection on test data
+fit.subset.test <- regsubsets(test_data$price ~ ., data = test_data, method = "exhaustive")
+summary(fit.subset.test)
+
+model.ids <- 1:6
+cv.test.errors <-  map(model.ids, formula, fit.subset.test, "price") %>%
+  map(error, test_data) %>%
+  unlist()
+
+#min test mse for model will all 6 predictors 
+min(cv.test.errors) #770.3904
 
 ########################################
+
+### principle component regression
+
+fit.pcr <- pcr(train_Y ~ .
+               , data = train_X, scale = FALSE, center = FALSE)
+
+
+# prediction on train data
+pred.train.list <- predict(fit.pcr)
+best.train.M = 0.
+best.train.MSE = Inf
+best.train.coefficients = NULL
+for (M in 1:ncol(train_X)) {
+  pred = pred.train.list[, , M]
+  mse = mean((pred - train_Y)^2)
+  if (mse < best.train.MSE) {
+    best.train.MSE <- mse
+    best.train.M <- M
+    best.train.coefficients <- fit.pcr$coefficients[, , M]
+  }
+}
+best.train.M #6
+best.train.MSE #9593086
+best.train.coefficients
+# carat        cut      color    clarity      depth      table 
+#2740.00485   47.62913 -367.05082  604.05949  -14.98773  -37.16489 
+
+
+# prediction on test data
+pred.test.list <- predict(fit.pcr, test_X)
+best.test.M = 0.
+best.test.MSE = Inf
+best.test.coefficients = NULL
+for (M in 1:ncol(train_X)) {
+  pred = pred.test.list[, , M]
+  mse = mean((pred - test_Y)^2)
+  if (mse < best.test.MSE) {
+    best.test.MSE <- mse
+    best.test.M <- M
+    best.test.coefficients <- fit.pcr$coefficients[, , M]
+  }
+}
+best.test.M #6
+best.test.MSE #9602035
+
+########################################
+
+
+# ridge regression
+
+cv_ridge <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 0)
+best_lambda <- cv_ridge$lambda.1se
+ridge_model <- glmnet(as.matrix(train_X), train_Y,
+                      alpha = 0, lambda = best_lambda)
+coef(ridge_model)
+
+#(Intercept) 2999.473351
+#carat       2417.869601
+#cut           43.392618
+#color       -250.570431
+#clarity      442.393856
+#depth         -9.379870
+#table         -3.515143
+
+
+# prediction on train data
+ridge.train.pred <- predict(ridge_model, as.matrix(train_X))
+ridge.train.MSE <- mean((ridge.train.pred - train_Y)^2)
+ridge.train.MSE #677572.2
+
+#prediction on test data
+ridge.test.pred <- predict(ridge_model, as.matrix(test_X))
+ridge.test.MSE <- mean((ridge.test.pred - test_Y)^2)
+ridge.test.MSE #668929.1
+
+########################################
+
 
 #Applying Random Forest algorithm
 
