@@ -7,6 +7,12 @@ library(plyr)
 library(ggplot2)
 library(GGally)
 library(leaps)
+library(randomForest)
+library(Metrics)
+library(caret)
+
+
+
 
 set.seed(2)
 
@@ -114,3 +120,28 @@ test_Y <- test_data$price
 # subset selection'
 fit.subset <- regsubsets(train_Y ~ ., data = train_X, method = "exhaustive")
 coef(fit.subset, 1:5)
+
+
+#Applying Random Forest algorithm
+
+#install.packages("randomForest")
+random_forest_model <- randomForest(x = train_X, y = train_Y, ntree = 100)
+
+# Predicting on test set
+
+predict_rf <- predict(random_forest, test_X)
+
+#Displaying the testing error
+#install.packages('Metrics')
+
+# Calculating the mean absolute error
+print(mae(test_Y,predict_rf))  # 222.24
+
+# Calculating the root mean square error
+postResample(predict_rf,test_Y)['RMSE']^2 # 140845.7
+
+# Calculating the R^2 value
+postResample(predict_rf,test_Y)['Rsquared'] # 0.97
+
+plot(random_forest)
+
