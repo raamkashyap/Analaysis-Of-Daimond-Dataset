@@ -112,15 +112,31 @@ test_Y <- test_data$price
 
 # apply regression methods
 
-
-
 # linear regression
 #fit.lm <-lm(train_Y ~ ., data = train_X)
+
+# Applying linear regression model using price as the target and other features as the feature space
+lin_reg_obj <- lm(train_Y ~ ., data = train_X)
+
+# Compute the predictions
+predict_price_lin_reg <- predict(lin_reg_obj, test_X)
+
+#Print MAE
+print(mae(test_Y,predict_price_lin_reg))  # 561.7
+
+# Print RMSE
+postResample(predict_price_lin_reg,test_Y)['RMSE']^2  #593280.4 
+
+# Calculating the R-squared value
+postResample(predict_price_lin_reg,test_Y)['Rsquared'] # 0.912
+
+########################################
 
 # subset selection'
 fit.subset <- regsubsets(train_Y ~ ., data = train_X, method = "exhaustive")
 coef(fit.subset, 1:5)
 
+########################################
 
 #Applying Random Forest algorithm
 
