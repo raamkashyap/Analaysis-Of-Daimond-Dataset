@@ -129,7 +129,7 @@ random_forest_model <- randomForest(x = train_X, y = train_Y, ntree = 100)
 
 # Predicting on test set
 
-predict_rf <- predict(random_forest, test_X)
+predict_rf <- predict(random_forest_model, test_X)
 
 #Displaying the testing error
 #install.packages('Metrics')
@@ -143,5 +143,5 @@ postResample(predict_rf,test_Y)['RMSE']^2 # 140845.7
 # Calculating the R^2 value
 postResample(predict_rf,test_Y)['Rsquared'] # 0.97
 
-plot(random_forest)
+plot(random_forest_model)
 
