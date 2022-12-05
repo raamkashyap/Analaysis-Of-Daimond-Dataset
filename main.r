@@ -273,6 +273,36 @@ ridge.test.pred <- predict(ridge_model, as.matrix(test_X))
 ridge.test.MSE <- mean((ridge.test.pred - test_Y)^2)
 ridge.test.MSE #668929.1
 
+
+#########lasso regression
+
+cv.lasso <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 1)
+best.lambda.lasso <- cv.lasso$lambda.1se
+best.lambda.lasso #33.26595
+lasso.model <- glmnet(as.matrix(train_X), train_Y,
+                      alpha = 1, lambda = best.lambda.lasso)
+coef(lasso.model)
+
+#             s0
+#(Intercept) 2999.473351
+#carat       2661.196023
+#cut           32.638243
+#color       -311.373507
+#clarity      547.348751
+#depth          .       
+#table         -1.411057
+
+
+# prediction on train data
+lasso.train.pred <- predict(lasso.model, as.matrix(train_X))
+lasso.train.MSE <- mean((lasso.train.pred - train_Y)^2)
+lasso.train.MSE #604506.6
+
+#prediction on test data
+lasso.test.pred <- predict(lasso.model, as.matrix(test_X))
+lasso.test.MSE <- mean((lasso.test.pred - test_Y)^2)
+lasso.test.MSE #599609.9
+
 ########################################
 
 
