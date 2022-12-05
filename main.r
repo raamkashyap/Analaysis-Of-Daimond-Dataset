@@ -36,6 +36,7 @@ for (i in colnames(num_cols)) {
 }
 
 
+
 # remove outliers ## trying to put into for loop, but this works for now
 outliers.carat <- boxplot(diamonds$carat, plot=FALSE)$out
 diamonds <- diamonds[-which(diamonds$carat %in% outliers.carat),]
@@ -58,7 +59,9 @@ diamonds <- diamonds[-which(diamonds$y %in% outliers.y),]
 outliers.z <- boxplot(diamonds$z, plot=FALSE)$out
 diamonds <- diamonds[-which(diamonds$z %in% outliers.z),]
 
-
+cor_mat <- cor(diamonds[, -c(2:4)])
+cor_mat
+corrplot(cor_mat, method="pie", type="lower", addCoef.col = "black")
 
 # check outliers again, should not be present now
 par(mfrow=c(2,4))
@@ -88,6 +91,9 @@ pr_var <- std_dev^2
 prop_varex <- pr_var/sum(pr_var)
 
 plot(prop_varex, type = "b")
+plot(cumsum(prop_varex), xlab = "Principal Components",
+     ylab = "Cumulative Proportion of Variance",
+     type = "b")
 
 # we remove x, y and z variables based on pca and correlation plot output
 diamonds <- diamonds %>% 
