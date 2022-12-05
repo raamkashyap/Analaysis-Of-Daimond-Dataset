@@ -90,7 +90,8 @@ std_dev <- pr.out$sdev
 pr_var <- std_dev^2
 prop_varex <- pr_var/sum(pr_var)
 
-plot(prop_varex, type = "b")
+plot(prop_varex, xlab = "Principal Components",
+     ylab = "Proportion of Variance", type = "b")
 plot(cumsum(prop_varex), xlab = "Principal Components",
      ylab = "Cumulative Proportion of Variance",
      type = "b")
@@ -197,63 +198,19 @@ cv.test.errors <-  map(model.ids, formula, fit.subset.test, "price") %>%
 #min test mse for model will all 6 predictors 
 min(cv.test.errors) #770.3904
 
-########################################
-
-### principle component regression
-
-fit.pcr <- pcr(train_Y ~ .
-               , data = train_X, scale = FALSE, center = FALSE)
-
-
-# prediction on train data
-pred.train.list <- predict(fit.pcr)
-best.train.M = 0.
-best.train.MSE = Inf
-best.train.coefficients = NULL
-for (M in 1:ncol(train_X)) {
-  pred = pred.train.list[, , M]
-  mse = mean((pred - train_Y)^2)
-  if (mse < best.train.MSE) {
-    best.train.MSE <- mse
-    best.train.M <- M
-    best.train.coefficients <- fit.pcr$coefficients[, , M]
-  }
-}
-best.train.M #6
-best.train.MSE #9593086
-best.train.coefficients
-# carat        cut      color    clarity      depth      table 
-#2740.00485   47.62913 -367.05082  604.05949  -14.98773  -37.16489 
-
-
-# prediction on test data
-pred.test.list <- predict(fit.pcr, test_X)
-best.test.M = 0.
-best.test.MSE = Inf
-best.test.coefficients = NULL
-for (M in 1:ncol(train_X)) {
-  pred = pred.test.list[, , M]
-  mse = mean((pred - test_Y)^2)
-  if (mse < best.test.MSE) {
-    best.test.MSE <- mse
-    best.test.M <- M
-    best.test.coefficients <- fit.pcr$coefficients[, , M]
-  }
-}
-best.test.M #6
-best.test.MSE #9602035
 
 ########################################
 
+## Ridge Regression
 
-# ridge regression
+cv.ridge <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 0)
+best.lambda.ridge <- cv.ridge$lambda.1se
+best.lambda.ridge #240.2071
+ridge.model <- glmnet(as.matrix(train_X), train_Y,
+                      alpha = 0, lambda = best.lambda.ridge)
+coef(ridge.model)
 
-cv_ridge <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 0)
-best_lambda <- cv_ridge$lambda.1se
-ridge_model <- glmnet(as.matrix(train_X), train_Y,
-                      alpha = 0, lambda = best_lambda)
-coef(ridge_model)
-
+#               s0
 #(Intercept) 2999.473351
 #carat       2417.869601
 #cut           43.392618
@@ -264,17 +221,19 @@ coef(ridge_model)
 
 
 # prediction on train data
-ridge.train.pred <- predict(ridge_model, as.matrix(train_X))
+ridge.train.pred <- predict(ridge.model, as.matrix(train_X))
 ridge.train.MSE <- mean((ridge.train.pred - train_Y)^2)
 ridge.train.MSE #677572.2
 
 #prediction on test data
-ridge.test.pred <- predict(ridge_model, as.matrix(test_X))
+ridge.test.pred <- predict(ridge.model, as.matrix(test_X))
 ridge.test.MSE <- mean((ridge.test.pred - test_Y)^2)
 ridge.test.MSE #668929.1
 
 
-#########lasso regression
+########################################
+
+## Lasso Regression
 
 cv.lasso <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 1)
 best.lambda.lasso <- cv.lasso$lambda.1se
@@ -292,7 +251,6 @@ coef(lasso.model)
 #depth          .       
 #table         -1.411057
 
-
 # prediction on train data
 lasso.train.pred <- predict(lasso.model, as.matrix(train_X))
 lasso.train.MSE <- mean((lasso.train.pred - train_Y)^2)
@@ -302,6 +260,52 @@ lasso.train.MSE #604506.6
 lasso.test.pred <- predict(lasso.model, as.matrix(test_X))
 lasso.test.MSE <- mean((lasso.test.pred - test_Y)^2)
 lasso.test.MSE #599609.9
+
+########################################
+
+## Regression Tree
+
+fit.tree <- rpart(train_Y ~ ., data = train_X)
+fit.tree$cptable
+
+#CP nsplit rel error    xerror        xstd
+#1 0.71027869      0 1.0000000 1.0000325 0.008671541
+#2 0.06266607      1 0.2897213 0.2899212 0.002929652
+#3 0.04993119      2 0.2270552 0.2277476 0.002427827
+#4 0.03393171      3 0.1771241 0.1780637 0.002382428
+#5 0.01511627      4 0.1431923 0.1432967 0.001808565
+#6 0.01492336      5 0.1280761 0.1324440 0.001696824
+#7 0.01023770      6 0.1131527 0.1132481 0.001480342
+#8 0.01000000      7 0.1029150 0.1038572 0.001461335
+
+best.cp <- fit.tree$cptable %>%
+  as_tibble() %>%
+  filter(xerror == min(xerror)) %>%
+  head(1) %>%
+  pull(CP)
+best.cp #0.01 because it has min xerror
+
+#prune tree with best cp
+prune.tree <- prune(fit.tree, cp = best.cp)
+rpart.plot(prune.tree)
+
+# prediction on train data
+prune.train.pred <- predict(
+  prune.tree,
+  train_X
+)
+
+#train error
+mean((prune.train.pred - train_Y)^2) #694893.6
+
+# prediction on test data
+prune.test.pred <- predict(
+  prune.tree,
+  test_X
+)
+
+#test error
+mean((prune.test.pred - test_Y)^2) #692470.4
 
 ########################################
 
