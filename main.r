@@ -136,7 +136,7 @@ predict_price_lin_reg <- predict(lin_reg_obj, test_X)
 #Print MAE
 print(mae(test_Y,predict_price_lin_reg))  # 561.7
 
-# Print RMSE
+# Print MSE
 postResample(predict_price_lin_reg,test_Y)['RMSE']^2  #593280.4 
 
 # Calculating the R-squared value
@@ -325,7 +325,7 @@ predict_rf <- predict(random_forest_model, test_X)
 # Calculating the mean absolute error
 print(mae(test_Y,predict_rf))  # 222.24
 
-# Calculating the root mean square error
+# Calculating the  mean square error
 postResample(predict_rf,test_Y)['RMSE']^2 # 140845.7
 
 # Calculating the R^2 value
