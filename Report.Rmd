@@ -155,9 +155,10 @@ plot(prop_varex, xlab = "Principal Components",
 ```
 
 From the scree plot it is visibile 6 components are atleast necessary to represent 98% variance in the data.\
-Considering 6 predictors to represent most of the variance\
+since depth already captured information from x,y,z, these four variables namely depth ,x,yz have collinearity. PCA takes advantage of multicollinearity and combines the highly correlated variables into a set of uncorrelated variables. Therefore, PCA can effectively eliminate multicollinearity between features. This reduces the training time since only few weights have to be found given that feature vectors have been decreased.\
 $\newline$
-As x,y,z are highly correlated carat. xyz are dropped from the table\
+As x,y,z are highly correlated carat they are dropped from the data set and 6 predictors are considered to represent most of the variance\
+$\newline$
 
 ```{r}
 diamonds <- diamonds %>% 
