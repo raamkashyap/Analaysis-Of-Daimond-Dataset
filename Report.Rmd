@@ -182,9 +182,6 @@ Principal component analysis (PCA) is an unsupervised statistical technique used
 We are computing PCA to verify the results we obtained from pairwise association and to reduce the number of predictors.
 
 ```{r 11}
-diamonds$cut = as.numeric(unclass(diamonds$cut))
-diamonds$clarity = as.numeric(unclass(diamonds$clarity))
-diamonds$color = as.numeric(unclass(diamonds$color))
 pr.out <- prcomp(diamonds %>% select (-price), scale = TRUE)
 std_dev <- pr.out$sdev
 pr_var <- std_dev^2
@@ -247,16 +244,17 @@ We have used cross validation for tuning of hyper-parameters (regularization wei
 Linear regression analysis is used to predict the value of a variable based on the value of another variable. It is of the form y = ax +b , where y is the response variable and x is the predictor variable. a and b are constants which are called the coefficients. Using R's lm() utilities, we construct a relationship model. The model's coefficients are calculated, then we use them to construct the mathematical equation. As a performance metric we find out the mean square error.
 
 ```{r 15}
-# Applying linear regression model using price as the target and other features as the feature space
+# Applying linear regression model using price as the target
+# and other features as the feature space
 lin_reg_obj <- lm(train_Y ~ ., data = train_X)
 # Compute the predictions
 predict_price_lin_reg <- predict(lin_reg_obj, test_X)
 #Print MAE
-print(mae(test_Y,predict_price_lin_reg))  # 561.7
+print(mae(test_Y,predict_price_lin_reg))
 # Print MSE
-postResample(predict_price_lin_reg,test_Y)['RMSE']^2  #593280.4 
+postResample(predict_price_lin_reg,test_Y)['RMSE']^2
 # Calculating the R-squared value
-postResample(predict_price_lin_reg,test_Y)['Rsquared'] # 0.912
+postResample(predict_price_lin_reg,test_Y)['Rsquared']
 ```
 
 ### 2.2.2 Penalized Linear Regression - Ridge
@@ -296,7 +294,7 @@ LASSO stands for Least Absolute Shrinkage and Selection Operator. It is also a s
 # Find best lambda using cross validation
 cv.lasso <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 1)
 best.lambda.lasso <- cv.lasso$lambda.1se
-print(paste("Best lambda: ", best.lambda.lasso)) #33.26595
+print(paste("Best lambda: ", best.lambda.lasso))
 
 # Fit a model using best lambda value
 lasso.model <- glmnet(as.matrix(train_X), train_Y,
@@ -367,7 +365,8 @@ Bootstrapping is a re-sampling approach used in statistics and machine learning 
 bootstrap_func <- function(formula, data_frame, obs)
 {
   bootstrap_sample <-  data_frame[obs, ] # Select a sample using bootstrap
-  lin_reg_model <- lm(formula, data = bootstrap_sample) # Applying linear regression on the bootstrap sample 
+  # Applying linear regression on the bootstrap sample
+  lin_reg_model <- lm(formula, data = bootstrap_sample)  
   return(coef(lin_reg_model)) # The function should return the weights
 }
 # Apply bootstrap for 1001 samples
@@ -395,11 +394,11 @@ predict_rf <- predict(random_forest_model, test_X)
 #Displaying the testing error
 #install.packages('Metrics')
 # Calculating the mean absolute error
-print(mae(test_Y,predict_rf))  # 222.24
+print(mae(test_Y,predict_rf))
 # Calculating the  mean square error
-postResample(predict_rf,test_Y)['RMSE']^2 # 140845.7
+postResample(predict_rf,test_Y)['RMSE']^2
 # Calculating the R^2 value
-postResample(predict_rf,test_Y)['Rsquared'] # 0.97
+postResample(predict_rf,test_Y)['Rsquared']
 plot(random_forest_model)
 ```
 
