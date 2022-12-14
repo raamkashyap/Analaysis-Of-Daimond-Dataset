@@ -1,31 +1,63 @@
 ---
 title: "Analysis of Diamond Dataset"
 author: |
-    | GEETA SOWMYA CHETHI <50442722>
-    | AYUSHI DAKSH <50442722>
-    | RAM KASHYAP CHERUKUMILLI <50468970>
-    | SHIVANI BETHI <50442852>
-date: "`r Sys.Date()`"
-output: pdf_document
+    | GEETA SOWMYA CHETHI [50442722]
+    | AYUSHI DAKSH [50485625]
+    | RAM KASHYAP CHERUKUMILLI [50468970]
+    | SHIVANI BETHI [50442852]
+output:
+    pdf_document:
+        dev: png
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-set.seed(42) 
 ```
 
-$\textbf{Git Repo Link}$ : [Analysis of Diamond Dataset](https://github.com/raamkashyap/Analysis-Of-Diamond-Dataset.git)\
+**Github Repository:** <https://github.com/raamkashyap/Analysis-Of-Diamond-Dataset.git>
 
-# (a) Data Description
+# **1. Introduction**
 
-We have chosen Diamond dataset as our main dataset for our application project. Approximately 54K observations make up the diamond data set, which includes 10 primary variables such as carat, cut, color, clarity, depth, table, price, x (length in mm), y (width in mm), and z. (depth in mm). Overall, its a tidy data set without any errors or missing values.
-Below is the image that depicts the characteristics of features within the dataset.
+## **1.1 Abstract**
 
+The history of the diamond industry from a political and social perspective is fascinating. By studying the characteristics of diamonds that are highly valued, we could gain insights into what factors make a diamond more or less valuable. Without considering the peculiarities of the diamonds, even an expert cannot incorporate as much price information as a picture of the entire market. We performed a statistical data analysis (outlier detection, pairwise association and PCA) and used different regression techniques (linear regression, penalized linear regression - ridge and lasso, regression tree and random forest) to predict the diamond price. In our analysis, we also identified the factors responsible for driving the price of a diamond. Among the techniques that we explored, we found that Random Forest performed the best for this task.
 
+## **1.2 Dataset Description**
 
-# (b) Materials and Methods
+We have used the Diamond dataset from openML repository $\newline$<https://www.openml.org/search?type=data&sort=runs&id=42225&status=active>
 
-```{r}
+The dataset has approximately 54K observations and 10 primary variables - carat, cut, color, clarity, depth, table, price, x (length in mm), y (width in mm), and z. (depth in mm).
+
+Detailed description of the variables-
+
+$\newline$ Price $\hspace{2cm}$Price of the diamond in US dollars.\
+Carat $\hspace{1.9cm}$Weight of the diamond.\
+Cut $\hspace{2.2cm}$Quality of cut.\
+Color $\hspace{2cm}$Color of Diamond.\
+Clarity $\hspace{1.8cm}$How Clear the diamond is.\
+x$\hspace{2.8cm}$Length of the diamond in mm.\
+y$\hspace{2.8cm}$Width of the diamond in mm.\
+z$\hspace{2.8cm}$Depth of the diamond in mm.\
+depth$\hspace{2cm}$Total depth percentage of the diamond.( depth percantage = z/mean(x,y))\
+table$\hspace{2.1cm}$width of top to relatively widest point on the diamond.$\newline$
+
+There are 9 predictors-
+
+-   Carat, depth, table, x, y, z are numerical variables
+
+-   Cut, color clarity are categorical variables
+
+Response variable is price.
+
+# **2. Materials and Methods**
+
+## **2.1 Data exploration and pre-processing**
+
+### **Load libraries and set seed**
+
+We load all the libraries necessary to execute our code and set seed for reproducible results.
+
+```{r warning=FALSE, message=FALSE}
 library(tidyverse)
 library(rpart)
 library(dplyr)
@@ -44,68 +76,53 @@ library(glmnetUtils)
 library(pls) 
 library(boot)
 library(corrplot)
-```
-$\newline$
-$\textbf{Git Repo Link}$ : [Analysis of Diamond Dataset](https://github.com/raamkashyap/Analysis-Of-Diamond-Dataset.git)\
-$\newline$
-$\vspace{0.2cm}$
-$\textbf{Objective}$ : Predict the Price of Diamond from the list of predictors, Decide the most important features of the diamonds that affect the price of the Diamond.\
-$\newline$
-$\textbf{Diamonds Dataset}$: 
-```{r}
-data(diamonds)
-diamonds
-```
-$\newline$
-This dataset has 53,930 records.\
-$\newline$
-Price  $\hspace{2cm}$Price of the diamond in US dollars.\
-Carat  $\hspace{1.9cm}$Weight of the diamond.\
-Cut    $\hspace{2.2cm}$Quality of cut.\
-Color  $\hspace{2cm}$Color of Diamond.\
-Clarity $\hspace{1.8cm}$How Clear the diamond is.\
-x$\hspace{2.8cm}$Length of the diamond in mm.\
-y$\hspace{2.8cm}$Width of the diamond in mm.\
-z$\hspace{2.8cm}$Depth of the diamond in mm.\
-depth$\hspace{2cm}$Total depth percentage of the diamond.( depth percantage = z/mean(x,y))\
-table$\hspace{2.1cm}$width of top to relatively widest point on the diamond.\
 
-$\newline$
-$\textbf{Predictors}$ :
-```{r}
-colnames(diamonds)
+set.seed(2)
 ```
-$\newline$
-$\textbf{Numerical Columns}$ :
-```{r}
+
+### **Load Dataset**
+
+```{r 2}
+
+data(diamonds)
+
+# view dataset summary
+summary(diamonds)
+
+# view a few rows of the data
+head(diamonds)
+```
+
+$\newline$ **Numerical Columns**: Carat, x, y, z, depth and table are numerical columns.
+
+```{r 3}
 num_cols <- select_if(diamonds, is.numeric)
 colnames(num_cols)
 ```
 
-Among the predictors Carat, x, y, z, depth and table are numerical columns.\
-$\newline$
-$\textbf{Categorical Columns}$ :
-```{r}
+$\newline$ **Categorical Columns**: Cut, color and clarity are categorical columns.
+
+```{r 4}
 cat_col <- select_if(diamonds, negate(is.numeric))
 colnames(cat_col)
 ```
-$\newline$
-Among the predictors cut,color and clarity are categorical columns.\
-$\textbf{Outlier Detection}$ :
-For the Numerical Columns Outlier detection is done using box plots \
-```{r}
+
+### Outlier Detection and Filtering
+
+The boxplot() method helps us visually identify if outliers exist in the dataset for each variable. This method defined the outliers as points which are outside the [2.5%, 97.5%] confidence interval. We perform outlier detection and filtering on numerical variables only.
+
+```{r 5}
 par(mfrow=c(2,4))
 for (i in colnames(num_cols)) {
   boxplot(diamonds[,i], main = i)
 }
 ```
-Outliers are found are for all the 6 numerical columns.\
-$\newline$
-$\textbf{Outliers Removal}$ :
-Removed Outliers as they can be problematic because they can affect the results of an analysis.\
-All the outliers are removed using box plots out function.\
-```{r}
-# remove outliers ## trying to put into for loop, but this works for now
+
+We observe that all the variables have some outliers which need to be filtered out.
+
+For filtering outliers we use boxplot()\$out which gives us the outliers for a particular column. Once we get those values, we remove them from the dataset.
+
+```{r 6}
 outliers.carat <- boxplot(diamonds$carat, plot=FALSE)$out
 diamonds <- diamonds[-which(diamonds$carat %in% outliers.carat),]
 outliers.depth <- boxplot(diamonds$depth, plot=FALSE)$out
@@ -121,35 +138,50 @@ diamonds <- diamonds[-which(diamonds$y %in% outliers.y),]
 outliers.z <- boxplot(diamonds$z, plot=FALSE)$out
 diamonds <- diamonds[-which(diamonds$z %in% outliers.z),]
 ```
-After Outlier Removals Box Plots looks like this.\
-```{r, echo=FALSE}
+
+$\newline$ After outlier removal, we get the following boxplots for all columns-
+
+```{r 7}
 par(mfrow=c(2,4))
 for (i in colnames(num_cols)) {
   boxplot(diamonds[,i], main = i)
 }
 ```
-$\newline$
-After outliers removal 47000 records are remained.\
-$\newline$
-$\textbf{Pairwise Association}$ :
-To find out the predictors that price of the diamond Pairwise association of the each predictor is done to see if any unwanted or least contributed columns can be dropped.\
-```{r, eval = FALSE}
-ggpairs(diamonds)
+
+$\newline$ After outlier removal, we have retained approximately 47000 records.
+
+### Data Encoding
+
+Convert categorical variables to numerical encoding.
+
+```{r 8}
+diamonds$cut = as.numeric(unclass(diamonds$cut))
+diamonds$clarity = as.numeric(unclass(diamonds$clarity))
+diamonds$color = as.numeric(unclass(diamonds$color))
 ```
 
-Numerical Correlations are plotted as pie charts for clear understanding.\
-```{r}
+### Pairwise Association
+
+Pairwise association is a statistical technique that is used to examine the relationship between the variables by looking at each possible pair of variables and calculating the correlations between them. This helps us identify any variables that are highly correlated and might be influencing the relationship between the other variables. This can help us control for confounding variables and improve the accuracy and reliability of our analysis.
+
+```{r 9}
+ggpairs(diamonds, progress = FALSE)
+```
+
+$\newline$ By looking at the association between variables, we can identify that carat is highly correlated with x, y, z. Thus, we can safely remove x, y, z from the dataset without losing any relevant information. Reducing the number of predictors reduces the complexity of the prediction task and can also improve the accuracy and reliability of the prediction algorithm. $\newline$ The correlations for numerical columns can also be plotted as pie charts for more visually intuitive understanding.
+
+```{r 10}
 cor_mat <- cor(diamonds[, -c(2:4)])
-cor_mat
 corrplot(cor_mat, method="pie", type="lower", addCoef.col = "black")
 ```
-$\newline$
-From Both the Plots it is visible that carat is highly correlated to x,y,z that has 99% correlation.\
-$\newline$
-$\textbf{Principle Component Analysis}$ :
-$\newline$
-To decide on the most important features Principal component Analysis is uses as it reduces dimensions.\
-```{r}
+
+### Principal Component Analysis
+
+Principal component analysis (PCA) is an unsupervised statistical technique used to reduce the dimensionality of a dataset while preserving the maximum variance. It uses singular value decomposition to identify a suitable sub-space in the high dimensional dataset.
+
+We are computing PCA to verify the results we obtained from pairwise association and to reduce the number of predictors.
+
+```{r 11}
 diamonds$cut = as.numeric(unclass(diamonds$cut))
 diamonds$clarity = as.numeric(unclass(diamonds$clarity))
 diamonds$color = as.numeric(unclass(diamonds$color))
@@ -160,44 +192,41 @@ prop_varex <- pr_var/sum(pr_var)
 plot(prop_varex, xlab = "Principal Components",
      ylab = "Proportion of Variance", type = "b")
 ```
-From the scree plot it is visibile 6 components are atleast necessary to represent 98% variance in the data.\
-since depth already captured information from x,y,z, these four variables namely depth ,x,yz have collinearity. PCA takes advantage of multicollinearity and combines the highly correlated variables into a set of uncorrelated variables. Therefore, PCA can effectively eliminate multicollinearity between features. This reduces the training time since only few weights have to be found given that feature vectors have been decreased.\
-$\newline$
-As x,y,z are highly correlated carat they are dropped from the data set and 6 predictors are considered to represent most of the variance\
-$\newline$
 
-```{r}
+From the scree plot it is visible that at-least 6 components are necessary to represent 98% variance in the data.
+
+Since depth already captures information from x, y, z, these four variables- depth, x, y, z have colinearity. PCA takes advantage of multi-colinearity and combines the highly correlated variables into a set of uncorrelated variables. Therefore, PCA can effectively eliminate multi-colinearity between features. This reduces the training time since only few weights have to be found given that feature vectors have been decreased.
+
+These results are also inline with the pairwise association results, which also reduced the dimensionality by 3. $\newline$
+
+From the above results, we finally drop x, y, z variables from the dataset. Now we have 6 predictors in the dataset- carat, color, cut, clarity, depth, and table.
+
+```{r 12}
 diamonds <- diamonds %>% 
   select (-x, -y, -z)
 ```
-$\newline$
-$\textbf{Data Encoding}$ :\
-$\newline$
-Encoded categorical variables to values for pca itself, using below code\
-```{r, eval=FALSE}
-diamonds$cut = as.numeric(unclass(diamonds$cut))
-diamonds$clarity = as.numeric(unclass(diamonds$clarity))
-diamonds$color = as.numeric(unclass(diamonds$color))
-```
-$\newline$
-$\textbf{Data Split}$ :
-$\newline$
-split the data in train and test in 70:30 ratio
-```{r}
-# split into 70% train and 30% test
+
+### Data Split
+
+We split the data into 70% train and 30% test samples.
+
+```{r 13}
 partition = sample(nrow(diamonds), as.integer(nrow(diamonds)*0.7))
 train_data <- diamonds[partition,]
 test_data <- diamonds[-partition,]
 ```
-$\newline$
-$\textbf{Data Normalisation}$
-For stability of the data, normalisation is done.\
-```{r}
+
+### Data Normalization
+
+We normalize the data to center it about the origin to have a unit variance across all features. This is needed for better performance and stability of the prediction algorithms.
+
+```{r 14}
 # normalize/standardize the data
 mean_vector = apply(train_data %>% select (-price), MARGIN=2, mean)
 sd_vector = apply(train_data %>% select (-price), MARGIN=2, sd)
 train_data[c(-7)] <- scale(train_data[c(-7)], center=mean_vector, scale=sd_vector)
 test_data[c(-7)] <- scale(test_data[c(-7)], center=mean_vector, scale=sd_vector)
+
 # Separate out predictors and response
 train_X <- train_data %>%
   select(-price)
@@ -207,63 +236,142 @@ test_X <- test_data %>%
 test_Y <- test_data$price
 ```
 
-## APPLICATION OF ALGORITHMS
+## 2.2 Prediction Algorithms
 
-We have used different regression algorithms like Linear Regression and penalized regression models like ridge and lasso, Regression Trees and Random Forest to predict the price of a specific set of unseen diamond features. For Stability Estimation we have used Bootstrap method as depicted below.
+We have trained different regression algorithms like Linear Regression and Penalized Linear Regression models- Ridge and Lasso, Regression Trees and Random Forest to predict the price of a diamond.
 
-$\newline$
-$\textbf{Linear Regression}$ :
-$\newline$
+We have used cross validation for tuning of hyper-parameters (regularization weight, depth of decision tree etc.). Mean Squared Error (MSE) is used as a metric for evaluation on test data. Stability Estimation has been done using Bootstrap.
 
-Linear regression analysis is used to predict the value of a variable based on the value of another variable. It is of the form y = ax +b , where y is the response variable x is the predictor variable. a and b are constants which are called the coefficients.
-Using R's lm() utilities, we construct a relationship model. The model's coefficients are calculated, then we use them to construct the mathematical equation. As a performance metric we find out the mean square error.
+### 2.2.1 Linear Regression
 
-```{r}
-# apply regression methods
+Linear regression analysis is used to predict the value of a variable based on the value of another variable. It is of the form y = ax +b , where y is the response variable and x is the predictor variable. a and b are constants which are called the coefficients. Using R's lm() utilities, we construct a relationship model. The model's coefficients are calculated, then we use them to construct the mathematical equation. As a performance metric we find out the mean square error.
 
-# linear regression
-#fit.lm <-lm(train_Y ~ ., data = train_X)
-
+```{r 15}
 # Applying linear regression model using price as the target and other features as the feature space
 lin_reg_obj <- lm(train_Y ~ ., data = train_X)
-
 # Compute the predictions
 predict_price_lin_reg <- predict(lin_reg_obj, test_X)
-
 #Print MAE
 print(mae(test_Y,predict_price_lin_reg))  # 561.7
-
 # Print MSE
 postResample(predict_price_lin_reg,test_Y)['RMSE']^2  #593280.4 
-
 # Calculating the R-squared value
 postResample(predict_price_lin_reg,test_Y)['Rsquared'] # 0.912
-
-########################################
 ```
 
-$\newline$
-$\textbf{BOOTSTRAP}$ :
-$\newline$
+### 2.2.2 Penalized Linear Regression - Ridge
 
-Bootstrapping is a resampling approach used in statistics and machine learning that involves periodically taking samples with replacement from our source data, frequently in order to estimate a population parameter. The phrase "with replacement" refers to the possibility of numerous occurrences of the same data point in our resampled dataset.
+Ridge regression is a shrinkage method; it shrinks the coefficients of variables having minor contribution to the outcome close to 0. This shrinkage is achieved by penalizing the model with an L2-norm penalty term (sum of squared coefficients). The amount of penalty is tuned using constant term $\lambda$. The best value of $\lambda$ is the one that minimizes the cross-validation prediction error. We compute best $\lambda$ using cv.glmnet() function that internally performs k-fold cross-validation. After getting the best $\lambda$, we fit a ridge regression model using that $\lambda$ value and evaluate on the test set.
 
-```{r}
+```{r 16}
+
+# Find best lambda using cross validation
+cv.ridge <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 0)
+best.lambda.ridge <- cv.ridge$lambda.1se
+print(paste("Best lambda: ", best.lambda.ridge))
+
+# Fit a model using best lambda value
+ridge.model <- glmnet(as.matrix(train_X), train_Y,
+                      alpha = 0, lambda = best.lambda.ridge)
+
+# Predictor importance
+coef(ridge.model)
+
+
+# Prediction on train data
+ridge.train.pred <- predict(ridge.model, as.matrix(train_X))
+print(paste("MSE on train data: ", mean((ridge.train.pred - train_Y)^2)))
+
+# Prediction on test data
+ridge.test.pred <- predict(ridge.model, as.matrix(test_X))
+print(paste("MSE on test data: ", mean((ridge.test.pred - test_Y)^2)))
+```
+
+### 2.2.3 Penalized Linear Regression - LASSO
+
+LASSO stands for Least Absolute Shrinkage and Selection Operator. It is also a shrinkage method. The shrinkage is achieved by penalizing the model with an L1-norm penalty term (sum of absolute coefficients). The amount of penalty is tuned using constant term $\lambda$. Sometimes coefficients are shrunken exactly to 0, this acts as subset selection for reducing predictors to reduce model complexity. The best value of $\lambda$ is the one that minimizes the cross-validation prediction error. We compute best $\lambda$ using cv.glmnet() function that internally performs k-fold cross-validation. After getting the best $\lambda$, we fit a LASSO regression model using that $\lambda$ value and evaluate on the test set.
+
+```{r 17}
+
+# Find best lambda using cross validation
+cv.lasso <- cv.glmnet(as.matrix(train_X), train_Y, alpha = 1)
+best.lambda.lasso <- cv.lasso$lambda.1se
+print(paste("Best lambda: ", best.lambda.lasso)) #33.26595
+
+# Fit a model using best lambda value
+lasso.model <- glmnet(as.matrix(train_X), train_Y,
+                      alpha = 1, lambda = best.lambda.lasso)
+
+# Predictor importance
+coef(lasso.model)
+
+# prediction on train data
+lasso.train.pred <- predict(lasso.model, as.matrix(train_X))
+print(paste("MSE on train data: ", mean((lasso.train.pred - train_Y)^2)))
+
+#prediction on test data
+lasso.test.pred <- predict(lasso.model, as.matrix(test_X))
+print(paste("MSE on test data: ", mean((lasso.test.pred - test_Y)^2)))
+```
+
+### 2.2.4 Regression Tree
+
+Regression tree is a type of decision tree used for regression problems. To build a regression tree, the algorithm recursively splits the dataset based on individual features until the leaves of the tree are reached. We fit a regression tree using rpart() with method = "anova". From the fitted model, get the best complexity parameter (cp) value. Best cp is the one with least cross validation error (xerror). Then we use this cp to get a pruned tree with less number of predictors than the full tree. Pruning is done to avoid overfitting. Sometimes pruned tree is same as full tree with all predictors.
+
+```{r 18}
+
+fit.tree <- rpart(train_Y ~ ., data = train_X)
+
+# cp table for model
+fit.tree$cptable
+
+# Best cp with minimum xerror
+best.cp <- fit.tree$cptable %>%
+  as_tibble() %>%
+  filter(xerror == min(xerror)) %>%
+  head(1) %>%
+  pull(CP)
+print(paste("Best cp for prune tree ", best.cp))
+
+# Prune tree with best cp
+prune.tree <- prune(fit.tree, cp = best.cp)
+rpart.plot(prune.tree)
+
+# prediction on train data
+prune.train.pred <- predict(
+  prune.tree,
+  train_X
+)
+
+#train error
+print(paste("MSE on train data: ", mean((prune.train.pred - train_Y)^2)))
+
+# prediction on test data
+prune.test.pred <- predict(
+  prune.tree,
+  test_X
+)
+
+#test error
+print(paste("MSE on test data: ", mean((prune.test.pred - test_Y)^2)))
+
+```
+
+### 2.2.5 Bootstrap
+
+Bootstrapping is a re-sampling approach used in statistics and machine learning that involves periodically taking samples with replacement from our source data, frequently in order to estimate a population parameter. The phrase "with replacement" refers to the possibility of numerous occurrences of the same data point in our re-sampled dataset.
+
+```{r 19}
 # Applying bootstrapping using multiple linear regression
-
 # Creating a function to caluculate the coeffecients that have been fitted
-
 bootstrap_func <- function(formula, data_frame, obs)
 {
-   bootstrap_sample <-  data_frame[obs, ] # Select a sample using bootstrap
-   lin_reg_model <- lm(formula, data = bootstrap_sample) # Applying linear regression on the bootstrap sample 
-   return(coef(lin_reg_model)) # The function should return the weights
+  bootstrap_sample <-  data_frame[obs, ] # Select a sample using bootstrap
+  lin_reg_model <- lm(formula, data = bootstrap_sample) # Applying linear regression on the bootstrap sample 
+  return(coef(lin_reg_model)) # The function should return the weights
 }
-
 # Apply bootstrap for 1001 samples
-
 bootstrap_final <- boot(data = diamonds, statistic=bootstrap_func, R = 1001, formula = price ~ .)
-
 # Plot the distribution of the bootstrapped samples
 plot(bootstrap_final,index = 1) # Intercept of the model
 plot(bootstrap_final,index = 2) # Carat predictor variable
@@ -274,66 +382,63 @@ plot(bootstrap_final,index = 5) # Depth predictor variable
 plot(bootstrap_final,index = 6) # Table predictor variable
 ```
 
-$\newline$
-$\textbf{RANDOM FOREST REGRESSION}$ :
-$\newline$
+### 2.2.6 Random Forest Regression
 
 A random forest is a machine learning method for tackling classification and regression issues. It makes use of ensemble learning, a method for solving complicated issues by combining a number of classifiers. In a random forest algorithm, there are many different decision trees. The random forest algorithm creates a "forest" that is trained via bagging or bootstrap aggregation. The accuracy of machine learning algorithms is increased by bagging, an ensemble meta-algorithm. Based on the predictions of the decision trees, the (random forest) algorithm determines the result. It makes predictions by averaging or averaging out the results from different trees. The accuracy of the result grows as the number of trees increases. The decision tree algorithm's shortcomings are eliminated with a random forest.
 
-
-
-```{r}
+```{r 20}
 #Applying Random Forest algorithm
-
 #install.packages("randomForest")
 random_forest_model <- randomForest(x = train_X, y = train_Y, ntree = 100)
-
 # Predicting on test set
-
 predict_rf <- predict(random_forest_model, test_X)
-
 #Displaying the testing error
 #install.packages('Metrics')
-
 # Calculating the mean absolute error
 print(mae(test_Y,predict_rf))  # 222.24
-
 # Calculating the  mean square error
 postResample(predict_rf,test_Y)['RMSE']^2 # 140845.7
-
 # Calculating the R^2 value
 postResample(predict_rf,test_Y)['Rsquared'] # 0.97
-
 plot(random_forest_model)
 ```
-$\newline$
-$\textbf{(c) RESULTS}$ :
-$\newline$
 
-From all the algorithms that we have applied it is seen that Random forest algorithm has the best performance when compared to others. It has a mean squared error of 140845.7, this algorithm performs very well since the other algorithms that we have used are linear models while random forest is a non linear algorithm and has better performance than decision tress since overfitting is avoided.
+# **3. Results**
 
+A summary of the train and test MSEs for the algorithms used above-
 
+| Model             | Train MSE | Test MSE |
+|-------------------|-----------|----------|
+| Linear Regression | 596245.3  | 593280.4 |
+| Ridge Regression  | 677572.2  | 668929.1 |
+| LASSO             | 601991.0  | 597434.9 |
+| Regression Tree   | 694893.6  | 692470.4 |
+| Random Forest     | 140689.1  | 140845.7 |
 
-$\newline$
-$\textbf{REFERENCES}$ :
-$\newline$
+From comparison of different models, we observe that Regression Tree performs the worst among all models as it has the maximum train and test MSE which looks right since single tree model are usually highly unstable and a poor predictor. Bagging regression tree should make the prediction more effective.
 
-https://www.section.io/engineering-education/introduction-to-random-forest-in-machine-learning/
-https://www.ijrte.org/wp-content/uploads/papers/v7i6s2/F11170476S219.pdf
-https://bookdown.org/yih_huynh/Guide-to-R-Book/diamonds.html
-https://medium.com/swlh/exploratory-data-analysis-21bbf3887e28
-https://neptune.ai/blog/random-forest-regression-when-does-it-fail-and-why
-Simple Linear Regression in R, bootstrap coefficients
+We also observe that Linear Regression with no penalization performs better than linear models with penalty -- ridge and LASSO. This indicates that ridge and LASSO penality are causing the model to underfit the data.
 
-$\newline$
-$\textbf{CONTRIBUTIONS}$ :
-$\newline$
+Finally, Random Forest has the least Train and Test MSE and therefore we can conclude that it is the best model. This algorithm performs best because random forests are more flexible than linear models and can model non-linear relationships between predictors and response. Also, random forest avoids overfitting which is a problem with regression tree.
 
-$\newline$
-RAM KASHYAP CHERUKUMILLI : Data set analysis, Exploratory data analysis, PCA, presentation slides, Report
-$\newline$
-AYUSHI DAKSH : Subset Selection, Ridge Regression, Lasso Regression, Regression Tree, presentation slides, Report
-$\newline$
-GEETA SOWMYA CHETHI : Bootstrapping, Random Forest regression algorithm, presentation slides, Report
-$\newline$
-SHIVANI BETHI : Linear Regression, presentation slides, Report
+# **4. References**
+
+-   <https://www.section.io/engineering-education/introduction-to-random-forest-in-machine-learning/>
+
+-   <https://www.ijrte.org/wp-content/uploads/papers/v7i6s2/F11170476S219.pdf>
+
+-   <https://bookdown.org/yih_huynh/Guide-to-R-Book/diamonds.html>
+
+-   <https://medium.com/swlh/exploratory-data-analysis-21bbf3887e28>
+
+-   <https://neptune.ai/blog/random-forest-regression-when-does-it-fail-and-why>
+
+# **5. Contributions**
+
+-   RAM KASHYAP CHERUKUMILLI : Data set analysis, Exploratory data analysis, PCA, Presentation slides, Report
+
+-   AYUSHI DAKSH : Penalized Linear Regression - Ridge and Lasso Regression, Regression Tree, Presentation slides, Report
+
+-   GEETA SOWMYA CHETHI : Bootstrapping, Random Forest regression algorithm, Presentation slides, Report
+
+-   SHIVANI BETHI : Linear Regression, Presentation slides, Report
