@@ -157,7 +157,7 @@ bootstrap_func <- function(formula, data_frame, obs)
 
 # Apply bootstrap for 1001 samples
 
-bootstrap_final <- boot(data = diamonds, statistic=bootstrap_func, R = 1001, formula = price ~ .b)
+bootstrap_final <- boot(data = diamonds, statistic=bootstrap_func, R = 1001, formula = price ~ .)
 
 # Plot the distribution of the bootstrapped samples
 plot(bootstrap_final,index = 1) # Intercept of the model
