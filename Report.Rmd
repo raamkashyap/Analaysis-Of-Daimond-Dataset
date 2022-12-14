@@ -3,7 +3,7 @@ title: "Analysis of Diamond Dataset"
 author: |
     | GEETA SOWMYA CHETHI <50442722>
     | AYUSHI DAKSH <50442722>
-    | RAM KASHYAP CHERUKUMILLI <50442722>
+    | RAM KASHYAP CHERUKUMILLI <50468970>
     | SHIVANI BETHI <50442852>
 date: "`r Sys.Date()`"
 output: pdf_document
@@ -13,6 +13,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 set.seed(42) 
 ```
+
+$\textbf{Git Repo Link}$ : [Analysis of Diamond Dataset](https://github.com/raamkashyap/Analysis-Of-Diamond-Dataset.git)\
 
 # (a) Data Description
 
